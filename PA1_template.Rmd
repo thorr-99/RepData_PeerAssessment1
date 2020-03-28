@@ -54,10 +54,39 @@ cat('Number of missing steps:', sum(is.na(activity$steps)), '\n' )
 cat('Number of missing intervals"', sum(is.na(activity$interval)), '\n')
 ```
 
-Impute the missing values by filling in the interval averages
+Impute the missing values by filling in the interval averages using data.table packages. 
 
-```{r}
-activity[, .(nafill())]
+```{r, warning=FALSE}
+activity[, avg:=mean(steps, na.rm = TRUE), by=interval][is.na(steps), steps:=avg][, avg:=NULL]
 ```
 
+Replot the daily average steps and recaculate the mean and median. 
+
+```{r}
+dailytotal2 <- activity[, .(TotalSteps = sum(steps, na.rm = TRUE)), by=date]
+cat('mean total number of steps taken per day:', mean(dailytotal2$TotalSteps), '\n')
+cat('median total number of steps taken per day:', median(dailytotal2$TotalSteps))
+```
+```{r}
+hist(dailytotal2$TotalSteps, main='Histogram for Total Steps of each day', 
+     xlab = 'Total Steps for each day', col='forestgreen')
+```
+
+As we filled the missing values with interval averages, this does not have a big impact on the overall averages.  The mean and median were only of slight difference and the distribution was almost identical. 
+
+
 ## Are there differences in activity patterns between weekdays and weekends?
+
+
+```{r}
+activity[, weekday:=weekdays(date, abbreviate=TRUE)]
+activity$weekday <- ifelse(activity$weekday %in% c('Sat', 'Sun'), "Weekend", "Weekday")
+activity$weekday <- as.factor(activity$weekday)
+
+avg2 <- activity[, .(Avg = mean(steps)), by=.(weekday, interval)]
+library(lattice)
+
+xyplot(Avg ~ interval | weekday, data=avg2, lay = c(1,2), type='l', 
+       ylab = 'Number of Steps', main='Avg Steps Comparison')
+
+```
